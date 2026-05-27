@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ description }}">
+    <title>{{ title }} - Python Flask 精美特色頁面</title>
+    
+    <!-- 引入高品質 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- 引入與首頁一致的 CSS 樣式檔 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- 子頁面專屬微調樣式 -->
+    <style>
+        .feat-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            z-index: 1;
+            width: 100%;
+        }
+        .feat-card {
+            width: 100%;
+            max-width: 600px;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+        .feat-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .feat-icon-large {
+            font-size: 4rem;
+            filter: drop-shadow(0 0 15px var(--color-primary-glow));
+            animation: pulse 3s infinite;
+        }
+        .feat-title {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 40%, var(--color-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .feat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(6, 182, 212, 0.12);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            color: #cffafe;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .feat-desc {
+            color: var(--color-text-muted);
+            font-size: 1.1rem;
+            margin-top: 8px;
+        }
+        .feat-content {
+            margin: 20px 0;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .feat-item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .feat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 3px solid var(--color-accent);
+            transition: background 0.2s ease;
+        }
+        .feat-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .item-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .item-val {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        .val-up {
+            color: #34d399; /* 綠色上漲 */
+        }
+        .val-down {
+            color: #f87171; /* 紅色下跌 */
+        }
+        .btn-back-wrapper {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--color-text-main);
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-family: var(--font-heading);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            width: 100%;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 動態背景裝飾 -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <div class="feat-container">
+        <!-- 玻璃卡片 (Glass Card) -->
+        <article class="card feat-card">
+            <div class="feat-header">
+                <div class="feat-icon-large">{{ icon }}</div>
+                <h1 class="feat-title">{{ title }}</h1>
+                <div class="feat-badge">
+                    <span class="pulse-dot" style="background-color: var(--color-accent); box-shadow: 0 0 8px var(--color-accent);"></span>
+                    {{ time }}功能模組
+                </div>
+            </div>
+            
+            <p class="feat-desc">{{ description }}</p>
+            
+            <!-- 動態資料清單區 -->
+            <div class="feat-content">
+                <div class="feat-item-list">
+                    {% for item in items %}
+                    <div class="feat-item" style="border-left-color: {{ theme_color }};">
+                        <span class="item-name">{{ item.name }}</span>
+                        <span class="item-val {{ item.class }}">{{ item.val }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- 回首頁按鈕 -->
+            <div class="btn-back-wrapper">
+                <a href="/" class="btn-secondary">
+                    <span>← 返回儀表板首頁</span>
+                </a>
+            </div>
+        </article>
+    </div>
+</body>
+</html>

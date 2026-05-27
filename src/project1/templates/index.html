@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="這是一個標準且現代化的 Python + Flask 專案架構儀表板，配置了玻璃擬態美學、API 運算功能與單元測試。">
+    <title>Python 3.12 Flask 極致美學儀表板</title>
+    
+    <!-- 引入高品質 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- 引入本地 CSS 樣式檔 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 動態背景裝飾 -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <div class="app-container">
+        <!-- 頂部導航與標題 -->
+        <header class="app-header">
+            <h1 class="app-title" id="main-title">Python 3.12 <span>Flask Dashboard</span></h1>
+            <p class="app-subtitle">標準現代化 Python 專案架構 • 部署於連接埠 19191</p>
+        </header>
+
+        <!-- 網格主佈局 -->
+        <main class="dashboard-grid">
+            <!-- 系統資訊卡片 (玻璃擬態) -->
+            <section class="card system-info-card" id="system-card">
+                <div class="card-header">
+                    <span class="card-icon">⚡</span>
+                    <h2>環境與專案配置</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li>
+                            <span class="label">開發環境</span>
+                            <span class="value badge">Python 3.12.0</span>
+                        </li>
+                        <li>
+                            <span class="label">Web 框架</span>
+                            <span class="value badge">Flask 3.1.3</span>
+                        </li>
+                        <li>
+                            <span class="label">靜態代碼檢查</span>
+                            <span class="value badge badge-glow">Ruff (Rust-based)</span>
+                        </li>
+                        <li>
+                            <span class="label">測試套件</span>
+                            <span class="value badge">Pytest 9.0.3</span>
+                        </li>
+                        <li>
+                            <span class="label">部署連接埠</span>
+                            <span class="value highlight">Port 19191</span>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 計算工具 API 互動卡片 -->
+            <section class="card calc-card" id="calc-card">
+                <div class="card-header">
+                    <span class="card-icon">🔧</span>
+                    <h2>即時 API 計算機</h2>
+                </div>
+                <div class="card-body">
+                    <div class="control-group">
+                        <label for="action-select">選擇計算動作 (Action)</label>
+                        <select id="action-select" class="styled-select">
+                            <option value="add">加法運算 (add) - 呼叫 main.py</option>
+                            <option value="multiply">乘法運算 (multiply) - 呼叫 utils.py</option>
+                            <option value="greet">精緻問候 (greet) - 呼叫 main.py</option>
+                            <option value="capitalize">單字首字母大寫 (capitalize) - 呼叫 utils.py</option>
+                        </select>
+                    </div>
+
+                    <!-- 動態切換的輸入區域 -->
+                    <div id="inputs-math" class="dynamic-inputs">
+                        <div class="input-row">
+                            <div class="input-wrapper">
+                                <label for="num-a">數值 A</label>
+                                <input type="number" id="num-a" value="12" placeholder="請輸入整數">
+                            </div>
+                            <div class="input-wrapper">
+                                <label for="num-b">數值 B</label>
+                                <input type="number" id="num-b" value="25" placeholder="請輸入整數">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="inputs-text" class="dynamic-inputs hidden">
+                        <div class="input-wrapper">
+                            <label for="text-input">輸入文字內容</label>
+                            <input type="text" id="text-input" value="hello world from flask web application" placeholder="請輸入英文內容">
+                        </div>
+                    </div>
+
+                    <button id="btn-submit" class="btn-primary">
+                        <span>發送 API 請求</span>
+                        <span class="btn-loader hidden" id="btn-loader"></span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- API 結果呈現卡片 -->
+            <section class="card result-card" id="result-card">
+                <div class="card-header">
+                    <span class="card-icon">🎯</span>
+                    <h2>運算與 API 回應結果</h2>
+                </div>
+                <div class="card-body result-body">
+                    <div class="status-indicator">
+                        <span class="pulse-dot"></span>
+                        <span id="api-status-text">伺服器連線正常，等待指令...</span>
+                    </div>
+                    
+                    <div class="console-box" id="console-output">
+                        <div class="console-placeholder">API 回應結果將即時呈現於此...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 頁尾 -->
+        <footer class="app-footer">
+            <p>© 2026 project1. Built with premium Glassmorphism UI & Modern Python Architecture.</p>
+        </footer>
+    </div>
+
+    <!-- 載入本地 JS 邏輯檔 -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
