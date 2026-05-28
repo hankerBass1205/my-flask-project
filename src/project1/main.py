@@ -25,6 +25,15 @@ def run_cli_demo() -> None:
 
 def main() -> None:
     """主程式進入點，啟動 Flask Web 伺服器並綁定至連接埠 19191。"""
+    import io
+    import sys
+
+    # 確保 stdout/stderr 在 Windows cp950 終端機下也能正確輸出 UTF-8（含 Emoji）
+    if hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "buffer"):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
     from project1.app import create_app
 
     app = create_app()
