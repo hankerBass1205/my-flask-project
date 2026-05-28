@@ -1,17 +1,13 @@
 version: "3.9"
 
 # ──────────────────────────────────────────────────────────────
-# 本地開發用 Compose（Windows 環境）
-# AWS 憑證透過 volume 掛載，金鑰不進入映像檔
-# 啟動指令：docker compose up --build
+# EC2 生產環境用 Compose
+# 不掛載任何憑證 volume，boto3 自動透過 EC2 IAM Role 取得金鑰
+# 啟動指令：docker compose -f docker-compose.prod.yml up -d
 # ──────────────────────────────────────────────────────────────
 
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runtime
     image: hankbass1205/project1:v2
     container_name: project1_web
     restart: unless-stopped
@@ -20,10 +16,7 @@ services:
     environment:
       - FLASK_DEBUG=0
       - PYTHONUNBUFFERED=1
-    volumes:
-      # 🔒 AWS 憑證安全掛載（唯讀）—— 僅本地開發使用
-      # EC2 部署請改用 docker-compose.prod.yml（透過 IAM Role 取得憑證）
-      - ${USERPROFILE}/.aws:/home/appuser/.aws:ro
+      # AWS 憑證由 EC2 IAM Role 自動注入，無需任何金鑰設定
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:19191/')"]
       interval: 30s
