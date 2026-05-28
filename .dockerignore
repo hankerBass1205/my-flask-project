@@ -1,0 +1,40 @@
+# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# ── 虛擬環境 ─────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── 測試與分析工具 ────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ── IDE ──────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Git ──────────────────────────────────────────
+.git/
+.gitignore
+
+# ── 文件 ─────────────────────────────────────────
+README.md
+*.md
+
+# ── 開發用設定 ────────────────────────────────────
+.editorconfig
+docker-compose*.yml
+Dockerfile*

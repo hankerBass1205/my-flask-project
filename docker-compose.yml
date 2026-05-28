@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  # Flask Web 應用程式
+  # ──────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: project1:latest
+    container_name: project1_web
+    restart: unless-stopped
+    ports:
+      - "19191:19191"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:19191/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - project1_net
+
+networks:
+  project1_net:
+    driver: bridge
