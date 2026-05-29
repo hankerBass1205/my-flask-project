@@ -8,7 +8,7 @@ import botocore.exceptions
 from flask import Flask, jsonify, render_template, request
 
 from project1.main import add, greet
-from project1.utils import capitalize_words, multiply
+from project1.utils import capitalize_words, multiply, start_cpu_stress, get_stress_status
 
 # 模組層級 Logger，異常訊息會同時寫入 Flask/Gunicorn 日誌
 logger = logging.getLogger(__name__)
@@ -185,4 +185,47 @@ def create_app() -> Flask:
         except Exception as e:
             return jsonify({"status": "error", "message": f"伺服器錯誤: {str(e)}"}), 500
 
+    # ── Feature 4：CPU 燒機 ────────────────────────────────────────────────
+
+    @app.route("/feature4")
+    def feature4() -> str:
+        """功能四：CPU 燒機測試頁面。
+
+        GET → 渲染燒機控制頁面，顯示目前燒機狀態。
+        """
+        status = get_stress_status()
+        return render_template("feature4.html", stress_status=status)
+
+    @app.route("/api/stress/start", methods=["POST"])
+    def stress_start() -> tuple[Any, int]:
+        """觸發 CPU 燒機 API。
+
+        接收 JSON：{ "duration": 30 }（duration 可選，預設 30 秒）
+        燒機邏輯在背景執行緒執行，不阻塞 Flask 主執行緒。
+        """
+        data: dict[str, Any] = request.get_json() or {}
+        try:
+            duration = int(data.get("duration", 30))
+            if duration <= 0 or duration > 300:
+                return jsonify({"status": "error", "message": "duration 必須介於 1–300 秒之間"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "duration 參數格式錯誤"}), 400
+
+        result = start_cpu_stress(duration=duration)
+        http_status = 200 if result["started"] else 409  # 409 Conflict = 已在執行中
+        logger.info("CPU 燒機請求：%s", result["message"])
+        return jsonify({
+            "status": "success",
+            "started": result["started"],
+            "message": result["message"],
+            "stress": result["status"],
+        }), http_status
+
+    @app.route("/api/stress/status", methods=["GET"])
+    def stress_status_api() -> tuple[Any, int]:
+        """查詢目前 CPU 燒機狀態。"""
+        return jsonify({"status": "success", "stress": get_stress_status()}), 200
+
     return app
+
+

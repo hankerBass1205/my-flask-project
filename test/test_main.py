@@ -4,7 +4,7 @@ import pytest
 
 from project1.app import create_app
 from project1.main import add, greet
-from project1.utils import capitalize_words, multiply
+from project1.utils import capitalize_words, multiply, start_cpu_stress, get_stress_status
 
 
 @pytest.fixture
@@ -147,3 +147,82 @@ def test_api_calculate_errors(client):
     response = client.post("/api/calculate", json={"action": "greet", "name": ""})
     assert response.status_code == 400
     assert "請輸入名字" in response.get_json()["message"]
+
+
+# ==========================================================================
+# Feature 4：CPU 燒機測試
+# ==========================================================================
+
+
+def test_feature4_route(client):
+    """測試 /feature4 路由回傳 200 並包含關鍵 HTML 內容。"""
+    response = client.get("/feature4")
+    assert response.status_code == 200
+    html = response.data.decode("utf-8")
+    assert "CPU 燒機壓測" in html
+    assert "開始燒機" in html
+
+
+def test_stress_start_api(client):
+    """測試 /api/stress/start 能正常觸發燒機並回傳 200。"""
+    # 使用極短的 duration（1 秒）避免測試執行時間過長
+    response = client.post("/api/stress/start", json={"duration": 1})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert data["started"] is True
+    assert "燒機已啟動" in data["message"]
+
+
+def test_stress_start_duplicate(client):
+    """測試燒機執行中再次觸發應回傳 409 Conflict。"""
+    # 先啟動一次（duration=2 秒，確保第二次請求時仍在執行）
+    client.post("/api/stress/start", json={"duration": 2})
+    # 立即再次觸發
+    response = client.post("/api/stress/start", json={"duration": 2})
+    assert response.status_code == 409
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert data["started"] is False
+
+
+def test_stress_start_invalid_duration(client):
+    """測試 duration 參數驗證。"""
+    # duration 為 0
+    response = client.post("/api/stress/start", json={"duration": 0})
+    assert response.status_code == 400
+
+    # duration 超過上限
+    response = client.post("/api/stress/start", json={"duration": 999})
+    assert response.status_code == 400
+
+    # duration 為非數字
+    response = client.post("/api/stress/start", json={"duration": "abc"})
+    assert response.status_code == 400
+
+
+def test_stress_status_api(client):
+    """測試 /api/stress/status 能正常回傳狀態。"""
+    response = client.get("/api/stress/status")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert "stress" in data
+    assert "running" in data["stress"]
+
+
+def test_cpu_stress_worker_util():
+    """測試 start_cpu_stress 工具函式能正常啟動背景執行緒。"""
+    result = start_cpu_stress(duration=1)
+    # 若燒機尚未執行，應成功啟動
+    assert "started" in result
+    assert "message" in result
+    assert "status" in result
+
+
+def test_get_stress_status_util():
+    """測試 get_stress_status 回傳正確的狀態結構。"""
+    status = get_stress_status()
+    assert isinstance(status, dict)
+    assert "running" in status
+    assert isinstance(status["running"], bool)

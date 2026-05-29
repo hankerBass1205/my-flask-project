@@ -8,7 +8,7 @@ version: "3.9"
 
 services:
   web:
-    image: hankbass1205/project1:v2
+    image: hankbass1205/project1:v3
     container_name: project1_web
     restart: unless-stopped
     ports:
