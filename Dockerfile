@@ -20,7 +20,8 @@ RUN pip install --upgrade pip \
 FROM python:3.12-slim AS runtime
 
 # 安全：以非 root 使用者執行
-RUN useradd --create-home --shell /bin/bash appuser
+# home 目錄設為 /home/appuser，本地測試時 AWS 憑證掛載至此
+RUN useradd --create-home --home-dir /home/appuser --shell /bin/bash appuser
 
 WORKDIR /app
 
@@ -34,7 +35,10 @@ COPY --from=builder /build/src ./src
 ENV PYTHONPATH=/app/src
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV FLASK_ENV=production
+# Flask 3.x 已移除 FLASK_ENV，改用 FLASK_DEBUG=0 關閉 debug 模式
+ENV FLASK_DEBUG=0
+# 確保 boto3 能正確解析 ~/.aws 路徑
+ENV HOME=/home/appuser
 
 # 切換至非 root 使用者
 USER appuser

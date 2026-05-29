@@ -1,11 +1,21 @@
 """Flask Web 應用程式工廠模組。"""
 
+import logging
 from typing import Any
 
+import boto3
+import botocore.exceptions
 from flask import Flask, jsonify, render_template, request
 
 from project1.main import add, greet
 from project1.utils import capitalize_words, multiply
+
+# 模組層級 Logger，異常訊息會同時寫入 Flask/Gunicorn 日誌
+logger = logging.getLogger(__name__)
+
+# AWS S3 配置常數（不含任何金鑰）
+S3_BUCKET = "hankdev-tw-storage-2026"
+S3_REGION = "ap-east-2"
 
 
 def create_app() -> Flask:
@@ -27,6 +37,84 @@ def create_app() -> Flask:
     def feat2() -> str:
         """功能二：找下午上班的公司。"""
         return "找下午上班的公司"
+
+    @app.route("/feature3", methods=["GET", "POST"])
+    def feature3() -> str:
+        """功能三：將使用者上傳的檔案串接至 AWS S3 Bucket。
+
+        GET  → 渲染上傳表單頁面。
+        POST → 接收檔案，透過 boto3 上傳至 S3，回傳結果訊息。
+
+        憑證讀取順序（boto3 預設鏈）：
+          1. 環境變數 (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
+          2. ~/.aws/credentials（本地開發）
+          3. EC2 Instance Profile / IAM Role（雲端部署）
+        """
+        upload_result: dict[str, str] | None = None
+
+        if request.method == "POST":
+            file = request.files.get("file")
+
+            if not file or file.filename == "":
+                upload_result = {
+                    "status": "error",
+                    "message": "未選取任何檔案，請重新選擇後再上傳。",
+                    "detail": "",
+                    "filename": "",
+                    "s3_key": "",
+                }
+            else:
+                filename: str = file.filename  # type: ignore[assignment]
+                s3_key = filename  # 直接以原始檔名作為 S3 Object Key
+
+                try:
+                    # 不傳入任何金鑰參數，boto3 自動套用憑證鏈
+                    s3_client = boto3.client("s3", region_name=S3_REGION)
+                    s3_client.upload_fileobj(file, S3_BUCKET, s3_key)
+
+                    logger.info("S3 上傳成功：%s → s3://%s/%s", filename, S3_BUCKET, s3_key)
+                    upload_result = {
+                        "status": "success",
+                        "message": "上傳成功",
+                        "filename": filename,
+                        "s3_key": s3_key,
+                        "detail": "",
+                    }
+
+                except botocore.exceptions.NoCredentialsError as e:
+                    detail = str(e)
+                    logger.error("S3 上傳失敗（憑證未設定）：%s", detail)
+                    upload_result = {
+                        "status": "error",
+                        "message": "找不到 AWS 憑證。請確認 ~/.aws/credentials 已設定，或 EC2 已綁定 IAM Role。",
+                        "detail": detail,
+                        "filename": filename,
+                        "s3_key": "",
+                    }
+
+                except botocore.exceptions.ClientError as e:
+                    detail = str(e)
+                    logger.error("S3 上傳失敗（ClientError）：%s", detail)
+                    upload_result = {
+                        "status": "error",
+                        "message": "S3 操作失敗，可能是 Bucket 名稱錯誤或 IAM 權限不足。",
+                        "detail": detail,
+                        "filename": filename,
+                        "s3_key": "",
+                    }
+
+                except Exception as e:  # noqa: BLE001
+                    detail = str(e)
+                    logger.exception("S3 上傳發生非預期錯誤：%s", detail)
+                    upload_result = {
+                        "status": "error",
+                        "message": "伺服器發生非預期錯誤，請查閱後端 Log。",
+                        "detail": detail,
+                        "filename": filename,
+                        "s3_key": "",
+                    }
+
+        return render_template("feature3.html", upload_result=upload_result)
 
     @app.route("/api/calculate", methods=["POST"])
     def calculate() -> tuple[Any, int]:

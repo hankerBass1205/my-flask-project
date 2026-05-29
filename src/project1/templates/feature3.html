@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AWS S3 檔案上傳功能模組，直接串接 AWS S3 Bucket，支援安全憑證自動載入機制。">
+    <title>Feature 3 - AWS S3 檔案上傳</title>
+
+    <!-- 引入高品質 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- 引入與首頁一致的 CSS 樣式檔 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Feature 3 專屬樣式 -->
+    <style>
+        /* ── 頁面版型 ── */
+        .feat-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            z-index: 1;
+            width: 100%;
+        }
+        .feat-card {
+            width: 100%;
+            max-width: 640px;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ── 卡片標頭 ── */
+        .feat-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .feat-icon-large {
+            font-size: 4rem;
+            filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.7));
+            animation: pulse 3s infinite;
+        }
+        .feat-title {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 40%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .feat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c4b5fd;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        /* ── S3 配置資訊 ── */
+        .s3-info-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .s3-info-item {
+            flex: 1;
+            min-width: 140px;
+            background: rgba(99, 102, 241, 0.07);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .s3-info-label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+        }
+        .s3-info-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+
+        /* ── 上傳表單區域 ── */
+        .upload-section {
+            margin-bottom: 20px;
+        }
+        .upload-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text-main);
+            margin-bottom: 10px;
+        }
+
+        /* 拖放區域 */
+        .drop-zone {
+            border: 2px dashed rgba(99, 102, 241, 0.4);
+            border-radius: 14px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(99, 102, 241, 0.04);
+            position: relative;
+        }
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: rgba(99, 102, 241, 0.75);
+            background: rgba(99, 102, 241, 0.1);
+            transform: scale(1.01);
+        }
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .drop-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .drop-text-main {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--color-text-main);
+        }
+        .drop-text-sub {
+            font-size: 0.82rem;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+        .file-selected-name {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #a78bfa;
+            font-weight: 600;
+            word-break: break-all;
+            display: none;
+        }
+
+        /* ── 提交按鈕 ── */
+        .btn-upload {
+            width: 100%;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-upload::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+        .btn-upload:hover::before { left: 100%; }
+        .btn-upload:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.55);
+        }
+        .btn-upload:active { transform: translateY(0); }
+        .btn-upload:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── 結果訊息區域 ── */
+        .result-area {
+            margin-top: 20px;
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-size: 0.92rem;
+            font-weight: 500;
+            display: none;
+            animation: fadeInUp 0.4s ease;
+        }
+        .result-area.success {
+            display: block;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.35);
+            color: #6ee7b7;
+        }
+        .result-area.error {
+            display: block;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            color: #fca5a5;
+        }
+        .result-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-detail {
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+            word-break: break-all;
+            margin-top: 6px;
+            opacity: 0.85;
+            white-space: pre-wrap;
+        }
+
+        /* ── 進度指示 ── */
+        .progress-bar-wrap {
+            margin-top: 12px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6366f1, #a78bfa);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            animation: progressIndeterminate 1.4s infinite ease-in-out;
+        }
+        @keyframes progressIndeterminate {
+            0%   { transform: translateX(-100%); width: 60%; }
+            100% { transform: translateX(200%);  width: 60%; }
+        }
+
+        /* ── 返回按鈕 ── */
+        .btn-back-wrapper { margin-top: 16px; }
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: var(--color-text-main);
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-family: var(--font-heading);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            width: 100%;
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 動態背景裝飾 -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="feat-container">
+        <article class="card feat-card">
+
+            <!-- 標頭 -->
+            <div class="feat-header">
+                <div class="feat-icon-large">☁️</div>
+                <h1 class="feat-title">AWS S3 檔案上傳</h1>
+                <div class="feat-badge">
+                    <span class="pulse-dot" style="background-color:#a78bfa; box-shadow:0 0 8px #a78bfa;"></span>
+                    boto3 安全串接 · IAM Role 支援
+                </div>
+            </div>
+
+            <!-- S3 配置資訊列 -->
+            <div class="s3-info-bar">
+                <div class="s3-info-item">
+                    <div class="s3-info-label">Bucket 名稱</div>
+                    <div class="s3-info-value">hankdev-tw-storage-2026</div>
+                </div>
+                <div class="s3-info-item">
+                    <div class="s3-info-label">Region</div>
+                    <div class="s3-info-value">ap-east-2 (台北)</div>
+                </div>
+                <div class="s3-info-item">
+                    <div class="s3-info-label">憑證模式</div>
+                    <div class="s3-info-value">IAM / ~/.aws</div>
+                </div>
+            </div>
+
+            <!-- 上傳表單 -->
+            <form id="upload-form" method="POST" enctype="multipart/form-data" action="/feature3">
+                <div class="upload-section">
+                    <label class="upload-label" for="file-input">選擇要上傳的檔案</label>
+                    <div class="drop-zone" id="drop-zone">
+                        <input
+                            type="file"
+                            name="file"
+                            id="file-input"
+                            required
+                            aria-label="選擇上傳檔案"
+                        >
+                        <span class="drop-icon">📂</span>
+                        <div class="drop-text-main">點擊選取或拖曳檔案至此</div>
+                        <div class="drop-text-sub">支援所有檔案類型，將直接上傳至 S3</div>
+                        <div class="file-selected-name" id="file-selected-name"></div>
+                    </div>
+                </div>
+
+                <!-- 進度條 -->
+                <div class="progress-bar-wrap" id="progress-bar-wrap">
+                    <div class="progress-bar-fill"></div>
+                </div>
+
+                <button type="submit" class="btn-upload" id="btn-upload">
+                    <span>🚀</span>
+                    <span id="btn-upload-text">上傳至 S3</span>
+                </button>
+            </form>
+
+            <!-- 結果回饋區域 -->
+            {% if upload_result %}
+                {% if upload_result.status == 'success' %}
+                <div class="result-area success">
+                    <div class="result-title">✅ 上傳成功</div>
+                    <div>檔案 <strong>{{ upload_result.filename }}</strong> 已成功上傳至 S3 Bucket。</div>
+                    <div class="result-detail">S3 Key：{{ upload_result.s3_key }}</div>
+                </div>
+                {% else %}
+                <div class="result-area error">
+                    <div class="result-title">❌ 上傳失敗</div>
+                    <div>{{ upload_result.message }}</div>
+                    <div class="result-detail">{{ upload_result.detail }}</div>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- 返回首頁 -->
+            <div class="btn-back-wrapper">
+                <a href="/" class="btn-secondary" id="btn-back-home">← 返回儀表板首頁</a>
+            </div>
+        </article>
+    </div>
+
+    <script>
+        // ── 拖曳區域互動 ──
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileSelectedName = document.getElementById('file-selected-name');
+        const btnUpload = document.getElementById('btn-upload');
+        const btnUploadText = document.getElementById('btn-upload-text');
+        const progressBarWrap = document.getElementById('progress-bar-wrap');
+        const uploadForm = document.getElementById('upload-form');
+
+        // 顯示已選取的檔名
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileSelectedName.textContent = '已選取：' + fileInput.files[0].name;
+                fileSelectedName.style.display = 'block';
+            }
+        });
+
+        // 拖曳進入
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileSelectedName.textContent = '已選取：' + fileInput.files[0].name;
+                fileSelectedName.style.display = 'block';
+            }
+        });
+
+        // 提交時顯示進度動畫
+        uploadForm.addEventListener('submit', () => {
+            if (fileInput.files.length === 0) return;
+            btnUpload.disabled = true;
+            btnUploadText.textContent = '上傳中，請稍候...';
+            progressBarWrap.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
